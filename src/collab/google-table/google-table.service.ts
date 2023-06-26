@@ -15,26 +15,19 @@ export class GoogleTableService {
     const table2 = new GoogleSpreadsheet(process.env.GOOGLE_TABLE_PROJECTS);
     const read_table = new GoogleSpreadsheet(process.env.READ_GOOGLE_TABLE);
     const config = JSON.parse(fs.readFileSync(`${process.env.GOOGLE_BOT_JSON}`, 'utf-8'));
-    let sheet1, sheet2
     (async function() {
       await table1.useServiceAccountAuth({
         client_email: config.client_email,
         private_key: config.private_key,
       });
-      
       await table2.useServiceAccountAuth({
         client_email: config.client_email,
         private_key: config.private_key,
       });
-      await table2.loadInfo();
-      console.log(table1.title);
-      console.log(table2.title);
       await read_table.useServiceAccountAuth({
         client_email: config.client_email,
         private_key: config.private_key,
       });
-      
-      sheet2 = table2.sheetsByIndex[0];
     }());
 
     setInterval(async () => {
@@ -46,7 +39,7 @@ export class GoogleTableService {
           console.log('read google table finish');
           console.log('google table start');
           await this.updateGoogle1(table1)
-          await this.updateGoogle2(sheet2)
+          await this.updateGoogle2(table2)
         } catch(e) {
           console.log("google table error", e)
         } finally {
@@ -150,7 +143,10 @@ export class GoogleTableService {
 
   // Projects
 
-  async updateGoogle2(sheet) {
+  async updateGoogle2(table2) {
+    await table2.loadInfo();
+    
+    let sheet = table2.sheetsByIndex[0];
     const users = await this.getAllProjects()
     const toadd =[]
     users.forEach(project => {
