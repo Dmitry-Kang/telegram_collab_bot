@@ -13,6 +13,7 @@ export class GoogleTableService {
     let isRunning = false;
     const table1 = new GoogleSpreadsheet(process.env.GOOGLE_TABLE_USERS);
     const table2 = new GoogleSpreadsheet(process.env.GOOGLE_TABLE_PROJECTS);
+    const read_table = new GoogleSpreadsheet(process.env.READ_GOOGLE_TABLE);
     const config = JSON.parse(fs.readFileSync(`${process.env.GOOGLE_BOT_JSON}`, 'utf-8'));
     let sheet1, sheet2
     (async function() {
@@ -20,7 +21,7 @@ export class GoogleTableService {
         client_email: config.client_email,
         private_key: config.private_key,
       });
-      await table1.loadInfo();
+      
       await table2.useServiceAccountAuth({
         client_email: config.client_email,
         private_key: config.private_key,
@@ -28,8 +29,11 @@ export class GoogleTableService {
       await table2.loadInfo();
       console.log(table1.title);
       console.log(table2.title);
-
-      sheet1 = table1.sheetsByIndex[0];
+      await read_table.useServiceAccountAuth({
+        client_email: config.client_email,
+        private_key: config.private_key,
+      });
+      
       sheet2 = table2.sheetsByIndex[0];
     }());
 
@@ -37,8 +41,11 @@ export class GoogleTableService {
       if (!isRunning) {
         try {
           isRunning = true
+          console.log('read google table start');
+          await this.readGoogle1(read_table)
+          console.log('read google table finish');
           console.log('google table start');
-          await this.updateGoogle1(sheet1)
+          await this.updateGoogle1(table1)
           await this.updateGoogle2(sheet2)
         } catch(e) {
           console.log("google table error", e)
@@ -56,7 +63,10 @@ export class GoogleTableService {
 
   // Users
 
-  async updateGoogle1(sheet) {
+  async updateGoogle1(table1) {
+
+    await table1.loadInfo();
+    let sheet = table1.sheetsByIndex[0];
     const users = await this.getAllUsers()
     const toadd =[]
     users.forEach(user => {
@@ -161,6 +171,46 @@ export class GoogleTableService {
     
   }
 
+  async readGoogle1(read_table) {
+    const user = await prisma.user.findUnique({
+      where: {
+        telegramId: process.env.ADMIN_TELEGRAM_ID,
+      },
+    });
+    await read_table.loadInfo();
+  
+    const sheets = read_table.sheetsByIndex;
+    const rows = [];
+  
+    for (let i = sheets.length - 10; i < sheets.length; i++) { // последние 10 суток
+      const sheet = sheets[i];
+
+      const rowCount = sheet.rowCount;
+      // Загрузка данных из каждого листа
+      await sheet.loadCells(`A1:H${rowCount}`);
+      
+      for (let row = 1; row < rowCount; row++) {
+        const rowData = [];
+        
+        for (let col = 0; col < 8; col++) {
+          const cellValue = sheet.getCell(row, col).value;
+          rowData.push(cellValue);
+        }
+        if (rowData[1]) {
+          rows.push({name: rowData[1], tssRequestedAt: new Date(), tssScore: Math.round(rowData[4]) || 0, authorId: user.id});
+        }
+        
+      }
+    }
+    
+    let res = await prisma.project.createMany({
+      data: rows,
+      skipDuplicates: true,
+    })
+
+    console.log(`Добавлено ${res.count} новых проектов`)
+  }
+
   async addRow2(sheet: GoogleSpreadsheetWorksheet, toadd) { 
     await sheet.clear("A:G")
     await sheet.setHeaderRow(['Name', 'Author', 'TSS', 'Lead', 'Likes', 'Dislikes', 'Total vote'])
@@ -212,3 +262,4 @@ export class GoogleTableService {
     return sortedProjects
   }
 }
+
