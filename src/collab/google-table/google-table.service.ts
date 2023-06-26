@@ -80,7 +80,7 @@ export class GoogleTableService {
   }
 
   async addRow1(sheet: GoogleSpreadsheetWorksheet, toadd) { 
-    await sheet.clear("A:F")
+    await sheet.clear("A:I")
     await sheet.setHeaderRow(['telegram Id', 'telegram name', 'Роль', 'Добавил проектов', 'Текущее кол-во лидов', 'Кол-во лидов за 2 недели', 'Likes', 'Dislikes', 'Total vote'])
     await sheet.addRows(toadd);
   }
@@ -162,7 +162,7 @@ export class GoogleTableService {
   }
 
   async addRow2(sheet: GoogleSpreadsheetWorksheet, toadd) { 
-    await sheet.clear("A:E")
+    await sheet.clear("A:G")
     await sheet.setHeaderRow(['Name', 'Author', 'TSS', 'Lead', 'Likes', 'Dislikes', 'Total vote'])
     await sheet.addRows(toadd);
   }
