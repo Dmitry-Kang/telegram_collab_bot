@@ -1,0 +1,21 @@
+уровни юзера
+- просто юзер
+- менеджер
+- админ
+
+юзер
+/start
+/help
+
+менеджер
+/add
+/find
+/my
+/top
+/new
+
+админ
+/managers
+/add_manager <telegram id>
+/remove_manager <telegram id>
+/remove_project <any name or url>

@@ -1,0 +1,77 @@
+// database
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// generator
+generator client {
+  provider             = "prisma-client-js"
+  // generate    = "true" // раскомментируйте, если хотите генерировать Prisma Client при запуске
+  // output        = "../src/prisma/prisma-client/"
+  // binaryTargets = ["native", "rhel-openssl-1.0.x"]
+  recursive_type_depth = 5
+}
+
+// data models
+
+model User {
+  id               Int       @id @default(autoincrement())
+  createdAt        DateTime  @default(now())
+
+  telegramId       String    @unique
+  telegramName     String
+
+  role             UserRoles @default(USER)
+  projects         Project[] @relation("owner")
+  leadingProjects  Project[] @relation("leading")
+  votes            Vote[] @relation("vote")
+  leadHistory      LeadHistory[] @relation("userleadhistory")
+}
+
+enum UserRoles {
+  USER
+  MANAGER
+  ADMIN
+}
+
+model Project {
+  id             Int      @id @default(autoincrement())
+  createdAt      DateTime @default(now())
+
+  name    String   @unique
+  tssRequestedAt DateTime?
+  tssScore       Int?
+  
+  author         User     @relation("owner", fields: [authorId], references: [id])
+  authorId       Int
+
+  lead           User?     @relation("leading", fields: [leadId], references: [id])
+  leadId         Int?
+  leadHistory    LeadHistory[]
+  votes          Vote[]
+
+  notes          Json?
+}
+
+model Vote {
+  id        Int      @id @default(autoincrement())
+
+  vote      Boolean
+  voteData  DateTime @default(now())
+
+  project   Project  @relation(fields: [projectId], references: [id])
+  projectId  Int
+  user    User     @relation("vote", fields: [userId], references: [id])
+  userId  Int
+  @@unique([projectId, userId])
+}
+
+model LeadHistory {
+  id         Int      @id @default(autoincrement())
+  user       User     @relation("userleadhistory", fields: [userId], references: [id])
+  userId     Int
+  project    Project  @relation(fields: [projectId], references: [id])
+  projectId  Int
+  createdAt  DateTime @default(now())
+}
