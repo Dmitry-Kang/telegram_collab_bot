@@ -60,7 +60,7 @@ export class GoogleTableService {
     const users = await this.getAllUsers()
     const toadd =[]
     users.forEach(user => {
-      toadd.push([user.telegramId, user.telegramName, user.role, user.projects.length ,user.leadingProjects.length, user.leadHistoryLength])
+      toadd.push([user.telegramId, user.telegramName, user.role, user.projects.length ,user.leadingProjects.length, user.leadHistoryLength, user.likes, user.dislikes, user.totalVote])
     })
 
     let success = false
@@ -81,7 +81,7 @@ export class GoogleTableService {
 
   async addRow1(sheet: GoogleSpreadsheetWorksheet, toadd) { 
     await sheet.clear("A:F")
-    await sheet.setHeaderRow(['telegram Id', 'telegram name', 'Роль', 'Добавил проектов', 'Текущее кол-во лидов', 'Кол-во лидов за 2 недели'])
+    await sheet.setHeaderRow(['telegram Id', 'telegram name', 'Роль', 'Добавил проектов', 'Текущее кол-во лидов', 'Кол-во лидов за 2 недели', 'Likes', 'Dislikes', 'Total vote'])
     await sheet.addRows(toadd);
   }
 
@@ -101,6 +101,7 @@ export class GoogleTableService {
       include: {
         leadingProjects: true,
         projects: true,
+        votes: true,
         leadHistory: {
           where: {
             createdAt: {
@@ -115,10 +116,22 @@ export class GoogleTableService {
       const leadHistory = user.leadHistory.reduce((sum, lead) => {
         return sum.add(lead.projectId)
       }, new Set())
+      const totalVote = user.votes.reduce((sum, vote) => {
+        return sum + (vote.vote ? 1 : -1)
+      }, 0)
+      const likes = user.votes.reduce((sum, vote) => {
+        return sum + (vote.vote ? 1 : 0)
+      }, 0)
+      const dislikes = user.votes.reduce((sum, vote) => {
+        return sum + (vote.vote ? 0 : 1)
+      }, 0)
       
       return {
         ...user,
-        leadHistoryLength: Array.from(leadHistory).length
+        leadHistoryLength: Array.from(leadHistory).length,
+        totalVote,
+        likes,
+        dislikes
       }
     })
 
