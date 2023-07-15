@@ -33,9 +33,12 @@ export class ShedulerService {
             isRunning = true
             await lock.promise
             lock.enable()
+            // await this.test() // все
+            // await this.test2() // все
+            // console.log('gotovo');
             console.log('sheduler start');
             // const projects = await this.getAllProjects() // определенные
-            const projects = await this.getSuperAllProjects() // все
+            const projects = await this.getSuperAllProjects()
             await projects.reduce(async (memo, el) => { // черепаха
               await memo
               el.tssScore = parseInt(await this.getPostTitles(el.name)) 
@@ -83,7 +86,7 @@ async getPostTitles(twitter) {
   let res = '0'
   do {
     try {
-      await delay(10 * 1000)
+      await delay(5 * 60 * 1000)
       const url = 'https://tweetscout.io/api/v1/accounts/search'
       await axios.get(
         url, {
@@ -116,12 +119,47 @@ async getPostTitles(twitter) {
       tries++
       console.log(`sheduler err3 ${twitter}`, error)
     }
-  } while (!finish || tries > 10)
+  } while (!finish || tries > 3)
   return res
 }
 
+
+
+  async test() {
+    return prisma.project.updateMany({
+      where: {
+        tssScore: null,
+      },
+      data: {
+        tssScore: 0,
+        tssRequestedAt: new Date(),
+      },
+    });
+  }
+
+  async test2() {
+    return prisma.project.updateMany({
+      where: {
+        tssScore: -3,
+      },
+      data: {
+        tssScore: 0,
+        tssRequestedAt: new Date(),
+      },
+    });
+  }
+
   async getSuperAllProjects() {
     return prisma.project.findMany({
+      take: 280,
+      where: {
+        tssScore: {
+          gt: -1, // не удаленные через тг + существующие
+        },
+      },
+      orderBy: {
+        tssRequestedAt: 'asc', // возрастание по последнему запросу
+      },
     });
   }
 

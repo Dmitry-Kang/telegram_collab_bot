@@ -41,7 +41,7 @@ model Project {
 
   name    String   @unique
   tssRequestedAt DateTime?
-  tssScore       Int?
+  tssScore       Int? @default(0)
   
   author         User     @relation("owner", fields: [authorId], references: [id])
   authorId       Int
